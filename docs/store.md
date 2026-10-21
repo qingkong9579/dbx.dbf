@@ -9,12 +9,13 @@
 | 项目 | 本项目状态 |
 | --- | --- |
 | `manifest.json` 的 `id` / `name` / `publisher` / `version` / `permissions` | ✅ `com.dbx.dbf` / `DBF Studio` / `qingkong9579` / `0.3.1` / 3 项 |
-| 源码公开可访问，并带版本 Tag | ⬜ 需推送到 `https://github.com/qingkong9579/dbx.dbf` 并打 `v0.3.1` |
-| 每个平台各一个**未签名** `.dbxp` + 同名 `.artifact.json` | ⬜ 由 GitHub Release 工作流产出（本地只出当前平台） |
-| `release-candidates.json` | ⬜ 由可复用工作流自动合并生成，不需手写 |
+| 源码公开可访问，并带版本 Tag | ✅ `https://github.com/qingkong9579/dbx.dbf`，Tag `v0.3.1`，Release 已附 5 个平台候选包与 `release-candidates.json` |
+| 每个平台各一个**未签名** `.dbxp` + 同名 `.artifact.json` | ✅ Release `v0.3.1` 已附 5 个平台包（windows-x64 / linux-x64 / linux-arm64 / darwin-x64 / darwin-arm64） |
+| `release-candidates.json` | ✅ 由可复用工作流自动生成并上传到 Release |
 | `.dbx-store.json`（商店文案：名称/简介/标签/许可证/主页） | ✅ 已提供，仅首次登记或改文案时才需要 |
 | 许可证 | ✅ MIT（`LICENSE`，可按需替换） |
-| 不提交二进制与私钥 | ✅ `.gitignore` 已忽略 `dist/`、`.dbx-dev/`、`bin/` |
+| 不提交二进制与私钥 | ✅ `.gitignore` 已忽略 `dist/`、`.dbx-dev/`、`backend/bin/` |
+| 商店候选 PR | ✅ [`t8y2/dbx-store#320`](https://github.com/t8y2/dbx-store/pull/320)：`publishers/qingkong9579.json` + `candidates/com.dbx.dbf.json`（CI 在签名前保持红色属预期） |
 
 | 不提交二进制与私钥 | ✅ `.gitignore` 已忽略 `dist/`、`.dbx-dev/`、`backend/bin/`、`*.log` |
 
@@ -134,3 +135,4 @@ Get-Content dist/com.dbx.dbf-0.3.1-windows-x64.artifact.json
 | 候选 PR CI 一直红 | 正常，等签名 Workflow 回写 |
 | 商店里缺某个平台 | 该 target 未产出，或 matrix 未包含（Go sidecar 必须逐平台构建） |
 | `dbx-plugin.toml and manifest.json must either both declare a backend` | 只改了一处 backend 声明 |
+

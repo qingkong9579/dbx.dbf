@@ -2,7 +2,7 @@
 
 面向证券登记结算交换文件的 DBF 工作台：打开、阅读、编辑、校验、导出 DBF 数据表，内置深市 D-COM、沪市 PROP 与沪市上市公司版字段释义。
 
-- 插件 ID：`com.dbx.dbf` · 版本 `0.3.1` · 前端工作台 + Go 原生 sidecar（`windows-x64`）
+- 插件 ID：`com.dbx.dbf` · 版本 `0.3.1` · 前端工作台 + Go 原生 sidecar（CI 构建 windows-x64 / linux-x64 / linux-arm64 / darwin-x64 / darwin-arm64）
 - 作者：微茫之心 · 仓库：[`qingkong9579/dbx.dbf`](https://github.com/qingkong9579/dbx.dbf) · 问题与建议请走仓库 Issues
 - 宿主要求：DBX `>= 0.5.68`，Host API `1`，sidecar 协议 `stdio-jsonl` / protocol 1
 - 参考实现：EasyDBF（Java，GBK/D-COM/PROP 支持）与 DBF Viewer Plus（Delphi，`DBFPlus.exe`，REA 静态分析，见 [`docs/analysis.md`](docs/analysis.md)）
