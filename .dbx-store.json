@@ -1,0 +1,30 @@
+{
+  "name": "DBF Studio",
+  "description": "打开、校验、编辑并导出 DBF 数据表（dBase III/IV/V、FoxPro、VFP），内置深市 D-COM、沪市 PROP 与上市公司版交换文件字段释义。",
+  "icon": "assets/plugin.svg",
+  "tags": [
+    "dbf",
+    "database",
+    "table",
+    "securities",
+    "settlement",
+    "exchange-file",
+    "dcom",
+    "prop"
+  ],
+  "permissions": [
+    "host.workbench",
+    "host.filesystem",
+    "host.storage"
+  ],
+  "source": "https://github.com/qingkong9579/dbx.dbf",
+  "homepage": "https://github.com/qingkong9579/dbx.dbf#readme",
+  "license": "MIT",
+  "releaseNotes": "0.3.1：补充作者与开源地址（关于对话框可直接复制仓库链接）；manifest 增加 publisher / source / homepage；新增商店元数据。",
+  "localizations": {
+    "zh-CN": {
+      "name": "DBF Studio",
+      "description": "打开、校验、编辑并导出 DBF 数据表（dBase III/IV/V、FoxPro、VFP），内置深市 D-COM、沪市 PROP 与上市公司版交换文件字段释义。"
+    }
+  }
+}

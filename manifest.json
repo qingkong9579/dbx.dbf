@@ -1,0 +1,177 @@
+{
+  "$schema": "https://raw.githubusercontent.com/t8y2/dbx/plugin-sdk-v1/plugins/manifest.schema.json",
+  "manifest_version": 1,
+  "id": "com.dbx.dbf",
+  "name": "DBF Studio",
+  "version": "0.3.1",
+  "publisher": "qingkong9579",
+  "description": "Open, inspect, edit, validate and export DBF tables (dBase III/IV/V, FoxPro, VFP), with built-in field dictionaries for Chinese exchange settlement files.",
+  "source": "https://github.com/qingkong9579/dbx.dbf",
+  "homepage": "https://github.com/qingkong9579/dbx.dbf#readme",
+  "icon": "assets/plugin.svg",
+  "engines": {
+    "dbx": ">=0.5.68",
+    "host_api": "1"
+  },
+  "permissions": [
+    "host.workbench",
+    "host.filesystem",
+    "host.storage"
+  ],
+  "entrypoints": {
+    "ui": {
+      "root": "ui",
+      "entry": "ui/index.html"
+    },
+    "backend": {
+      "protocol_versions": [
+        1
+      ],
+      "transport": "stdio-jsonl",
+      "executable": "bin/dbx-dbf-backend"
+    }
+  },
+  "contributions": [
+    {
+      "type": "workbench",
+      "id": "com.dbx.dbf.workbench",
+      "label": "DBF Studio",
+      "description": "DBF table workbench: structure, data, validation and export.",
+      "icon": "assets/plugin.svg"
+    },
+    {
+      "type": "connection-provider",
+      "id": "com.dbx.dbf.connection",
+      "label": "DBF 数据文件",
+      "icon": "assets/plugin.svg",
+      "database_type": "dbf",
+      "description": "连接单个 DBF 文件或一个 DBF 目录，在 DBF Studio 工作台中浏览、编辑并导出数据表。",
+      "fields": [
+        {
+          "key": "display_name",
+          "label": "连接名称",
+          "type": "text",
+          "binding": "name",
+          "required": true,
+          "placeholder": "例如：深市 S68 申报文件"
+        },
+        {
+          "key": "source",
+          "label": "数据源",
+          "type": "radio",
+          "binding": "config",
+          "default": "file",
+          "required": true,
+          "options": [
+            { "label": "单个 DBF 文件", "value": "file" },
+            { "label": "DBF 目录（批量）", "value": "folder" }
+          ]
+        },
+        {
+          "key": "file",
+          "label": "DBF 文件",
+          "type": "text",
+          "binding": "config",
+          "placeholder": "例如：D:\\data\\S68.DBF",
+          "description": "同目录下的 .DBT / .FPT 备注文件会被自动识别。",
+          "picker": {
+            "kind": "file",
+            "accept": [".dbf"],
+            "content_field": "file_content"
+          },
+          "visible_when": { "field": "source", "one_of": ["file"] },
+          "required_when": { "field": "source", "one_of": ["file"] }
+        },
+        {
+          "key": "file_content",
+          "label": "文件内容",
+          "type": "textarea",
+          "binding": "config",
+          "visible_when": { "field": "source", "one_of": ["upload"] }
+        },
+        {
+          "key": "folder",
+          "label": "数据目录",
+          "type": "text",
+          "binding": "config",
+          "placeholder": "例如：D:\\data\\props",
+          "description": "列出目录下全部 DBF 文件，可逐个数据表切换。",
+          "picker": { "kind": "directory" },
+          "visible_when": { "field": "source", "one_of": ["folder"] },
+          "required_when": { "field": "source", "one_of": ["folder"] }
+        },
+        {
+          "key": "encoding",
+          "label": "字符集",
+          "type": "select",
+          "binding": "config",
+          "default": "auto",
+          "description": "auto 会结合文件头语言驱动与内容自动判断；中文交换文件通常是 GBK。",
+          "options": [
+            { "label": "自动识别", "value": "auto" },
+            { "label": "GBK（简体中文，交易所常用）", "value": "gbk" },
+            { "label": "UTF-8", "value": "utf-8" },
+            { "label": "Big5（繁体中文）", "value": "cp950" },
+            { "label": "Shift-JIS（日文）", "value": "cp932" },
+            { "label": "EUC-KR（韩文）", "value": "cp949" },
+            { "label": "Windows-1252", "value": "windows-1252" },
+            { "label": "CP437", "value": "cp437" },
+            { "label": "CP866（俄文）", "value": "cp866" }
+          ]
+        },
+        {
+          "key": "allow_write",
+          "label": "允许写回原文件",
+          "type": "boolean",
+          "binding": "config",
+          "default": false,
+          "description": "关闭时保存会另存为新文件；开启后保存先备份为 .bak 再替换原文件。"
+        }
+      ],
+      "workbench": "com.dbx.dbf.workbench",
+      "capabilities": ["test", "connect", "disconnect"]
+    }
+  ],
+  "localizations": {
+    "zh-CN": {
+      "name": "DBF Studio",
+      "description": "打开、校验、编辑并导出 DBF（dBase III/IV/V、FoxPro、VFP）数据表，内置深市 D-COM 与沪市 PROP 交换文件字段释义。",
+      "contributions": {
+        "com.dbx.dbf.workbench": {
+          "label": "DBF Studio",
+          "description": "DBF 数据表工作台：字段结构、数据编辑、校验与导出。"
+        },
+        "com.dbx.dbf.connection": {
+          "label": "DBF 数据文件",
+          "description": "连接单个 DBF 文件或一个 DBF 目录，在 DBF Studio 工作台中浏览、编辑并导出数据表。",
+          "fields": {
+            "display_name": { "label": "连接名称" },
+            "source": { "label": "数据源" },
+            "file": { "label": "DBF 文件" },
+            "folder": { "label": "数据目录" },
+            "encoding": { "label": "字符集" },
+            "allow_write": { "label": "允许写回原文件" }
+          }
+        }
+      }
+    },
+    "en": {
+      "name": "DBF Studio",
+      "description": "Open, inspect, edit, validate and export DBF tables with Chinese exchange-file field dictionaries.",
+      "contributions": {
+        "com.dbx.dbf.connection": {
+          "label": "DBF File",
+          "description": "Connect to a single DBF file or a folder of DBF tables and open them in the DBF Studio workbench.",
+          "fields": {
+            "display_name": { "label": "Name" },
+            "source": { "label": "Source" },
+            "file": { "label": "DBF file" },
+            "folder": { "label": "Folder" },
+            "encoding": { "label": "Encoding" },
+            "allow_write": { "label": "Allow writing back" }
+          }
+        }
+      }
+    }
+  }
+}
