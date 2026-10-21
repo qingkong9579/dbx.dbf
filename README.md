@@ -2,7 +2,7 @@
 
 面向证券登记结算交换文件的 DBF 工作台：打开、阅读、编辑、校验、导出 DBF 数据表，内置深市 D-COM、沪市 PROP 与沪市上市公司版字段释义。
 
-- 插件 ID：`com.dbx.dbf` · 版本 `0.3.1` · 前端工作台 + Go 原生 sidecar（CI 构建 windows-x64 / linux-x64 / linux-arm64 / darwin-x64 / darwin-arm64）
+- 插件 ID：`com.dbx.dbf` · 版本 `0.3.2` · 前端工作台 + Go 原生 sidecar（CI 构建 windows-x64 / linux-x64 / linux-arm64 / darwin-x64 / darwin-arm64）
 - 作者：微茫之心 · 仓库：[`qingkong9579/dbx.dbf`](https://github.com/qingkong9579/dbx.dbf) · 问题与建议请走仓库 Issues
 - 宿主要求：DBX `>= 0.5.68`，Host API `1`，sidecar 协议 `stdio-jsonl` / protocol 1
 - 参考实现：EasyDBF（Java，GBK/D-COM/PROP 支持）与 DBF Viewer Plus（Delphi，`DBFPlus.exe`，REA 静态分析，见 [`docs/analysis.md`](docs/analysis.md)）
@@ -97,7 +97,7 @@ CSV、JSON、SQL（标准 / MySQL）、HTML、Markdown、Excel 2003 XML、DBF、
 
 ```bash
 cd backend && go build -o bin/dbx-dbf-backend.exe .   # 编译 sidecar（linux/macos 换 GOOS）
-cd .. && dbx-plugin package .                          # 产出 dist/com.dbx.dbf-0.3.1-<target>.dbxp
+cd .. && dbx-plugin package .                          # 产出 dist/com.dbx.dbf-0.3.2-<target>.dbxp
 dbx-plugin dev --path . --port 5190                    # 独立调试宿主（会启动 sidecar）
 uv run --no-project --python 3.12 python tools/gen-samples.py   # 重新生成构造示例表
 ```
@@ -140,10 +140,11 @@ docs/analysis.md       REA 静态分析记录与设计取舍
 
 ## 发布
 
-`dbx-plugin package .` 产出未签名 `dist/com.dbx.dbf-0.3.1-windows-x64.dbxp` 与 `.artifact.json`（`backend/bin` 会被改写成包内 `bin/windows-x64/dbx-dbf-backend.exe`）；本地安装需在插件中心开启「允许安装未签名开发包」。正式上架流程（`.dbx-store.json`、GitHub Release 候选包、DBX Store 审核与签名、上架要素清单）见 [`docs/store.md`](docs/store.md)。
+`dbx-plugin package .` 产出未签名 `dist/com.dbx.dbf-0.3.2-windows-x64.dbxp` 与 `.artifact.json`（`backend/bin` 会被改写成包内 `bin/windows-x64/dbx-dbf-backend.exe`）；本地安装需在插件中心开启「允许安装未签名开发包」。正式上架流程（`.dbx-store.json`、GitHub Release 候选包、DBX Store 审核与签名、上架要素清单）见 [`docs/store.md`](docs/store.md)。
 
 ## 变更
 
+- `0.3.2`：全新插件图标（渐变徽章 + 数据表文档 + 折叠角），插件中心、商店与工作台内统一展示；功能与 0.3.1 一致。
 - `0.3.1`：补充作者与开源地址（关于对话框可直接复制仓库链接），`manifest.json` 增加 `publisher` / `source` / `homepage`，新增商店元数据 `.dbx-store.json` 与上架说明 `docs/store.md`。
 - `0.3.0`：接入《登记结算数据接口规范（上市公司版 V3.19）》20 类文件的字段字典（按文件前缀分表，146 个字段并集），新增 `T1600001.DBF` 构造示例与新建表模板；文件信息面板补充「数据类型 / 规范来源」，语言驱动与最后更新日期改为可读格式。
 - `0.2.0`：新增 `connection-provider` 与 Go sidecar，可从 DBX「新建连接」以「DBF 数据文件」类型连接单文件或目录，支持分块读取与原子写回（`.bak` 备份）。

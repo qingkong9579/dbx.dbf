@@ -20,7 +20,7 @@
   "source": "https://github.com/qingkong9579/dbx.dbf",
   "homepage": "https://github.com/qingkong9579/dbx.dbf#readme",
   "license": "MIT",
-  "releaseNotes": "0.3.1：补充作者与开源地址（关于对话框可直接复制仓库链接）；manifest 增加 publisher / source / homepage；新增商店元数据。",
+  "releaseNotes": "0.3.2：全新插件图标（渐变徽章 + 数据表文档），在插件中心、商店与工作台内统一展示；功能与 0.3.1 一致。",
   "localizations": {
     "zh-CN": {
       "name": "DBF Studio",
