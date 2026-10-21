@@ -1,10 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="DBF Studio">
   <defs>
-    <linearGradient id="g" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#6d5dfc"/>
-      <stop offset="1" stop-color="#2cc9a7"/>
+    <linearGradient id="bg" x1="10" y1="6" x2="54" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5b9bf8"/>
+      <stop offset=".6" stop-color="#2b68de"/>
+      <stop offset="1" stop-color="#17379a"/>
     </linearGradient>
+    <radialGradient id="glow" cx="22" cy="14" r="32" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="page">
+      <path d="M19 12H40L52 24V45A7 7 0 0 1 45 52H19A7 7 0 0 1 12 45V19A7 7 0 0 1 19 12Z"/>
+    </clipPath>
+    <filter id="lift" x="-12%" y="-10%" width="124%" height="126%">
+      <feDropShadow dx="0" dy="1.4" stdDeviation="1.5" flood-color="#0b2160" flood-opacity=".38"/>
+    </filter>
   </defs>
-  <rect width="64" height="64" rx="16" fill="url(#g)"/>
-  <path fill="#fff" d="M20 18h18a10 10 0 0 1 0 20H28v8h-8V18Zm8 8v4h10a2 2 0 1 0 0-4H28Z"/>
+
+  <rect width="64" height="64" rx="15" fill="url(#bg)"/>
+  <rect width="64" height="64" rx="15" fill="url(#glow)"/>
+
+  <path d="M19 12H40L52 24V45A7 7 0 0 1 45 52H19A7 7 0 0 1 12 45V19A7 7 0 0 1 19 12Z" fill="#ffffff" filter="url(#lift)"/>
+
+  <g clip-path="url(#page)">
+    <rect x="12" y="24" width="40" height="7" fill="#12307f"/>
+    <rect x="12" y="31" width="3.4" height="7" fill="#f5a524"/>
+  </g>
+
+  <g stroke="#c3d4f5" stroke-width="1.25">
+    <path d="M12 31h40M12 38h40M12 45h40"/>
+    <path d="M25 31v21M38 31v21"/>
+  </g>
+  <g stroke="#ffffff" stroke-width="1" stroke-opacity=".3">
+    <path d="M25 24v7M38 24v7"/>
+  </g>
+
+  <path d="M40 12L52 24H44.5A4.5 4.5 0 0 1 40 19.5Z" fill="#e3ecfc"/>
+  <path d="M40 12L52 24" stroke="#c2d4f5" stroke-width="1.2" fill="none"/>
 </svg>
