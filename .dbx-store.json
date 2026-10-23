@@ -20,7 +20,7 @@
   "source": "https://github.com/qingkong9579/dbx.dbf",
   "homepage": "https://github.com/qingkong9579/dbx.dbf#readme",
   "license": "MIT",
-  "releaseNotes": "0.3.3：新增手动更换编码重新打开（编码菜单、带预览的编码对话框、按文件记忆），修复 LDID 为 0 时自动识别回退 UTF-8 引起的乱码；保存时写入对应 LDID。",
+  "releaseNotes": "0.3.4：校验规则新增整数位上限与换行/控制字符检查，问题列表随界面语言显示；详情面板为交易市场代码等字段给出中文含义；识别「前缀_YYYYMMDD」命名并显示数据日期；新建表可选 dBase III+/IV/V 表版本。",
   "localizations": {
     "zh-CN": {
       "name": "DBF Studio",

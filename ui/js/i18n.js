@@ -78,6 +78,7 @@
       "info.ldidAuto": "未指定（按内容探测）",
       "info.encoding": "字符编码",
       "info.updated": "最后更新",
+      "info.dataDate": "数据日期",
       "info.memo": "备注文件",
       "info.mdx": "索引文件",
       "info.family": "数据类型",
@@ -89,6 +90,15 @@
       "info.layoutBad": "结构异常：声明长度与实际不一致",
       "info.dictCoverage": "字段释义覆盖",
       "info.fields": "字段数",
+
+      "val.nan": "非数值",
+      "val.dec": "小数位超出上限 {n}",
+      "val.int": "整数位超出上限 {n}",
+      "val.len": "超出字段长度 {n}",
+      "val.datefmt": "日期应为 YYYYMMDD",
+      "val.baddate": "非法日期",
+      "val.logic": "逻辑值应为 T / F / ?",
+      "val.ctrl": "含换行或控制字符",
 
       "field.name": "字段名",
       "field.cn": "中文名",
@@ -148,6 +158,7 @@
       "dlg.newTable.presetT1": "T1600001.DBF 上市公司持有人名册（13 字段）",
       "dlg.newTable.presetCsv": "从 CSV 推断",
       "dlg.newTable.name": "表名",
+      "dlg.newTable.version": "表版本",
       "dlg.newTable.firstRecord": "同时写入一条示例记录",
 
       "dlg.export.title": "导出数据",
@@ -384,6 +395,7 @@
       "info.ldidAuto": "not specified (detected)",
       "info.encoding": "Encoding",
       "info.updated": "Last update",
+      "info.dataDate": "Data date",
       "info.memo": "Memo file",
       "info.mdx": "Index file",
       "info.family": "Data family",
@@ -395,6 +407,15 @@
       "info.layoutBad": "Inconsistent declared lengths",
       "info.dictCoverage": "Described fields",
       "info.fields": "Fields",
+
+      "val.nan": "Not a number",
+      "val.dec": "Too many decimals (max {n})",
+      "val.int": "Integer digits exceed limit ({n})",
+      "val.len": "Longer than field length {n}",
+      "val.datefmt": "Date must be YYYYMMDD",
+      "val.baddate": "Invalid date",
+      "val.logic": "Logical value must be T / F / ?",
+      "val.ctrl": "Contains line break or control characters",
 
       "field.name": "Name",
       "field.cn": "Description",
@@ -454,6 +475,7 @@
       "dlg.newTable.presetT1": "T1600001.DBF holder register (13 fields)",
       "dlg.newTable.presetCsv": "Infer from CSV",
       "dlg.newTable.name": "Table name",
+      "dlg.newTable.version": "Table version",
       "dlg.newTable.firstRecord": "Add one sample record",
 
       "dlg.export.title": "Export data",

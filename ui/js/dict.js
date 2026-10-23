@@ -959,6 +959,58 @@
     { test: /LSH$|SEQ$/, hint: "流水号" },
   ];
 
+  /* 交易市场代码（证券代码的配套市场标识，常见于各类交换文件） */
+  const MARKETS = {
+    "1": "上交所",
+    "2": "深交所",
+    "3": "上期所",
+    "4": "郑商所",
+    "5": "银行间",
+    "6": "场外",
+    "7": "中金所",
+    "8": "境外场外",
+    "9": "大商所",
+    A: "阿姆斯特丹",
+    B: "布鲁塞尔",
+    C: "Chi-X Europe",
+    D: "爱尔兰",
+    E: "赫尔辛基",
+    F: "法兰克福",
+    G: "澳大利亚",
+    H: "港交所",
+    I: "里斯本",
+    J: "东交所",
+    K: "堪萨斯城",
+    L: "伦交所",
+    M: "米兰",
+    N: "纽交所",
+    O: "大阪",
+    P: "巴黎",
+    Q: "纳斯达克",
+    R: "瑞士",
+    S: "新交所",
+    U: "卢森堡",
+    V: "马德里",
+    X: "德意志",
+    Y: "港期所",
+    Z: "新西兰",
+    j: "股转市场",
+    k: "能源交易所",
+    n: "港股通（沪）",
+    o: "港股通（深）",
+    r: "北交所",
+    z: "金交所",
+  };
+
+  /* 字段名 -> 值域解码（仅用于少量含义明确的代码字段） */
+  function describeValue(fieldName, value) {
+    const up = String(fieldName || "").toUpperCase();
+    const raw = String(value === null || value === undefined ? "" : value).trim();
+    if (!raw) return "";
+    if (up === "SCDM" || up === "SCDM_1" || up === "MARKET") return MARKETS[raw] || "";
+    return "";
+  }
+
   function baseName(fileName) {
     return String(fileName || "").replace(/^.*[\\/]/, "").replace(/\.[^.]+$/, "");
   }
@@ -1033,8 +1085,10 @@
     GSSS_UNION,
     FAMILIES,
     PREFIXES,
+    MARKETS,
     familyOf,
     describeField,
+    describeValue,
     size: Object.keys(SZ_FIELDS).length,
     gsssSize: Object.keys(GSSS_UNION).length,
     gsssFiles: GSSS_ORDER.length,

@@ -477,6 +477,14 @@
       ],
       "s68"
     );
+    const versionSelect = select(
+      [
+        { id: "3", label: () => T("version.3") },
+        { id: "4", label: () => T("version.4") },
+        { id: "5", label: () => T("version.5") },
+      ],
+      String((App.state && App.state.prefs && App.state.prefs.newVersion) || 3)
+    );
     const table = el("table", { class: "field-table" });
     const thead = el("thead");
     const htr = el("tr");
@@ -550,6 +558,7 @@
     const grid = el("div", { class: "form-grid" });
     grid.appendChild(formRow(T("dlg.newTable.name"), nameInput));
     grid.appendChild(formRow(T("dlg.newTable.preset"), presetSelect));
+    grid.appendChild(formRow(T("dlg.newTable.version"), versionSelect));
     body.appendChild(grid);
     const wrap = el("div", { style: "max-height:44vh;overflow:auto;border:1px solid var(--border);border-radius:7px" });
     wrap.appendChild(table);
@@ -571,7 +580,12 @@
               return false;
             }
             try {
-              const out = DBF.buildDbf({ fields, rows: [], encoding: "gbk" });
+              const version = Number(versionSelect.value) || 3;
+              const out = DBF.buildDbf({ fields, rows: [], encoding: "gbk", version });
+              if (App.state && App.state.prefs) {
+                App.state.prefs.newVersion = version;
+                if (App.savePrefsDebounced) App.savePrefsDebounced();
+              }
               App.adopt(nameInput.value.trim() || "NEWTABLE.DBF", out.bytes);
             } catch (err) {
               App.toast(String(err.message || err), "err");
@@ -770,7 +784,7 @@
       : "";
     const repo = "https://github.com/qingkong9579/dbx.dbf";
     const rows = [
-      [T("dlg.about.version"), "0.3.3"],
+      [T("dlg.about.version"), "0.3.4"],
       [T("dlg.about.author"), T("dlg.about.authorName")],
       [T("dlg.about.source"), repo, true],
       [T("info.version"), "DBF II / III / IV / FoxPro 2.x / 2.5"],

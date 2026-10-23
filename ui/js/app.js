@@ -766,12 +766,23 @@
     }[t] || "var(--fg-muted)";
   }
 
+  /* “前缀_YYYYMMDD.dbf” 命名的接口文件：取其中的数据日期 */
+  function interfaceDate(name) {
+    const base = String(name || "").replace(/\.[^.]+$/, "");
+    const m = /^(.*?)[_\-#](\d{8})$/i.exec(base);
+    if (!m) return null;
+    const ymd = m[2];
+    if (!DBF.isValidDate(+ymd.slice(0, 4), +ymd.slice(4, 6), +ymd.slice(6, 8))) return null;
+    return { prefix: m[1], ymd };
+  }
+
   function renderInfo() {
     const h = state.header;
     if (!h) return;
     const dict = g.DBF_DICT;
     const file = state.source ? state.source.name : "";
     const fam = dict ? dict.familyOf(file) : null;
+    const idate = interfaceDate(file);
     let described = 0;
     for (const f of h.fields) if (dict && dict.describeField(file, f.name).cn) described += 1;
 
@@ -790,6 +801,7 @@
       ],
       ["info.encoding", state.encoding.toUpperCase()],
       ["info.updated", h.lastUpdate && h.lastUpdate.y ? fmtYmd(h.lastUpdate) : "—"],
+      ["info.dataDate", idate ? fmtYmd({ y: +idate.ymd.slice(0, 4), m: +idate.ymd.slice(4, 6), d: +idate.ymd.slice(6, 8) }) + " · " + idate.prefix : "—"],
       ["info.memo", h.hasMemo ? h.memoExt.toUpperCase() + (state.memo.name ? "" : " · " + T("common.none")) : T("common.none")],
       ["info.layout", h.layoutValid ? T("info.layoutOk") : T("info.layoutBad")],
       ["info.dictCoverage", described + " / " + h.fields.length],
@@ -860,6 +872,8 @@
       val.textContent = empty ? T("common.empty") : v;
       if (empty) val.classList.add("empty-val");
       wrap.appendChild(val);
+      const hint = !empty && dict && dict.describeValue ? dict.describeValue(f.name, v) : "";
+      if (hint) wrap.appendChild(el("div", { class: "rec-hint", text: hint }));
       frag.appendChild(wrap);
     }
     ui.recordForm.replaceChildren(frag);
@@ -913,7 +927,12 @@
       li.appendChild(icon("warn"));
       const body = el("div", {});
       body.appendChild(el("b", { text: String(is.row + 1) + " · " + is.field }));
-      body.appendChild(el("span", { class: "issue-msg", text: is.problem }));
+      let msg = is.problem;
+      if (is.code) {
+        const k = T("val." + is.code, { n: is.limit });
+        if (k && k.indexOf("val.") !== 0) msg = k;
+      }
+      body.appendChild(el("span", { class: "issue-msg", text: msg }));
       if (is.value) body.appendChild(el("code", { class: "issue-val", text: is.value }));
       li.appendChild(body);
       li.addEventListener("click", () => {
@@ -1101,7 +1120,7 @@
     const res = DBF.validateTable(table, { maxIssues: 300, limit: 50000 });
     state.issues = res.issues.slice(0, 300).map((x) => {
       const idx = state.rows.indexOf(x.row);
-      return { row: idx < 0 ? 0 : idx, field: x.field, fieldIndex: x.fieldIndex, value: x.value, problem: x.problem };
+      return { row: idx < 0 ? 0 : idx, field: x.field, fieldIndex: x.fieldIndex, value: x.value, problem: x.problem, code: x.code || "", limit: x.limit };
     });
     renderIssues();
     renderStatus();

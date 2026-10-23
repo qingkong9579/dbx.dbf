@@ -191,8 +191,8 @@
         if (lead > 0xfe || trail > 0xfe) break;
         gbkReverse.set(ch, [lead, trail]);
       }
-      // single byte ASCII plane
-      for (let c = 0x20; c < 0x80; c += 1) gbkReverse.set(c, [c]);
+      // single byte ASCII plane (includes controls, so round-trips never turn into '?')
+      for (let c = 0x00; c < 0x80; c += 1) gbkReverse.set(c, [c]);
     }
     return gbkReverse;
   }
@@ -918,23 +918,58 @@ ${body}
         if (!t) { counts[f.name].empty += 1; continue; }
         counts[f.name].filled += 1;
         let problem = null;
+        let code = "";
+        let limit = f.length;
         if (f.type === "N" || f.type === "F") {
-          if (!/^-?\d+(\.\d+)?$/.test(t.replace(/,/g, ""))) problem = "非数值";
-          else if (f.decimals && (t.split(".")[1] || "").length > f.decimals) problem = "小数位超限";
+          const raw = t.replace(/,/g, "");
+          if (!/^-?\d+(\.\d+)?$/.test(raw)) {
+            problem = "非数值";
+            code = "nan";
+          } else {
+            const body = raw.replace(/^-/, "");
+            const decLen = (body.split(".")[1] || "").length;
+            const intLen = body.split(".")[0].length;
+            /* dBase N width counts the decimal point, so integer digits get len - decimals - 1 */
+            const allowedInt = Math.max(1, f.length - f.decimals - (f.decimals > 0 ? 1 : 0));
+            if (f.decimals && decLen > f.decimals) {
+              problem = "小数位超限";
+              code = "dec";
+              limit = f.decimals;
+            } else if (intLen > allowedInt) {
+              problem = `整数位超限 ${allowedInt}`;
+              code = "int";
+              limit = allowedInt;
+            } else if (raw.length > f.length) {
+              problem = `超出字段长度 ${f.length}`;
+              code = "len";
+            }
+          }
         } else if (f.type === "D") {
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) problem = "日期格式应为 YYYYMMDD";
-          else {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) {
+            problem = "日期格式应为 YYYYMMDD";
+            code = "datefmt";
+          } else {
             const p = dateToYmd(t);
-            if (!p || !isValidDate(p.y, p.m, p.d)) problem = "非法日期";
+            if (!p || !isValidDate(p.y, p.m, p.d)) {
+              problem = "非法日期";
+              code = "baddate";
+            }
           }
         } else if (f.type === "L") {
-          if (t !== "T" && t !== "F" && t !== "?") problem = "逻辑值应为 T/F";
+          if (t !== "T" && t !== "F" && t !== "?") {
+            problem = "逻辑值应为 T/F";
+            code = "logic";
+          }
+        } else if (/[\u0000-\u0008\u000a-\u000d\u000e-\u001f\u007f]/.test(t)) {
+          problem = "含换行或控制字符";
+          code = "ctrl";
         } else if (t.length > f.length) {
           problem = `超出字段长度 ${f.length}`;
+          code = "len";
         }
         if (problem) {
           if (issues.length < o.maxIssues) {
-            issues.push({ row: r, field: f.name, fieldIndex: i, value: t.slice(0, 80), problem });
+            issues.push({ row: r, field: f.name, fieldIndex: i, value: t.slice(0, 80), problem, code, limit });
           }
         } else if (o.dupCheck && o.dupCheck.indexOf(f.name) >= 0) {
           const key = (seen.has(r) ? "" : "") + t;

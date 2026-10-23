@@ -8,16 +8,14 @@
 
 | 项目 | 本项目状态 |
 | --- | --- |
-| `manifest.json` 的 `id` / `name` / `publisher` / `version` / `permissions` | ✅ `com.dbx.dbf` / `DBF Studio` / `qingkong9579` / `0.3.3` / 3 项 |
-| 源码公开可访问，并带版本 Tag | ✅ `https://github.com/qingkong9579/dbx.dbf`，Tag `v0.3.3`，Release 已附 5 个平台候选包与 `release-candidates.json` |
-| 每个平台各一个**未签名** `.dbxp` + 同名 `.artifact.json` | ✅ Release `v0.3.3` 已附 5 个平台包（windows-x64 / linux-x64 / linux-arm64 / darwin-x64 / darwin-arm64） |
+| `manifest.json` 的 `id` / `name` / `publisher` / `version` / `permissions` | ✅ `com.dbx.dbf` / `DBF Studio` / `qingkong9579` / `0.3.4` / 3 项 |
+| 源码公开可访问，并带版本 Tag | ✅ `https://github.com/qingkong9579/dbx.dbf`，最新已发布 Tag `v0.3.3`（提交 0.3.4 前需先发布 `v0.3.4`），Release 附 5 个平台候选包与 `release-candidates.json` |
+| 每个平台各一个**未签名** `.dbxp` + 同名 `.artifact.json` | ✅ 最近一次 Release 已附 5 个平台包（windows-x64 / linux-x64 / linux-arm64 / darwin-x64 / darwin-arm64） |
 | `release-candidates.json` | ✅ 由可复用工作流自动生成并上传到 Release |
 | `.dbx-store.json`（商店文案：名称/简介/标签/许可证/主页） | ✅ 已提供，仅首次登记或改文案时才需要 |
 | 许可证 | ✅ MIT（`LICENSE`，可按需替换） |
 | 不提交二进制与私钥 | ✅ `.gitignore` 已忽略 `dist/`、`.dbx-dev/`、`backend/bin/` |
-| 商店候选 PR | ✅ [`t8y2/dbx-store#320`](https://github.com/t8y2/dbx-store/pull/320)：`publishers/qingkong9579.json` + `candidates/com.dbx.dbf.json`（CI 在签名前保持红色属预期） |
-
-| 不提交二进制与私钥 | ✅ `.gitignore` 已忽略 `dist/`、`.dbx-dev/`、`backend/bin/`、`*.log` |
+| 商店候选 PR | ✅ [`t8y2/dbx-store#341`](https://github.com/t8y2/dbx-store/pull/341)（0.3.3，CI 在签名前保持红色属预期）；提交 0.3.4 时把同一分支的 `candidates/com.dbx.dbf.json` 更新为新版本即可 |
 
 > 仓库根目录就是插件目录本身（`manifest.json`、`ui/`、`backend/`、`tools/`、`docs/`）。
 > 不要发布规范 PDF 原文、`DBFPlus.exe`、分析脚本输出或本机截图；示例表都是 `tools/gen-samples.py` 生成的虚构数据。
@@ -26,16 +24,16 @@
 
 ## 1. 发布源码 Tag 与候选 Release
 
-1. 递增 `manifest.json` 的 `version`（本项目当前 `0.3.3`），同步 `backend/main.go` 的
+1. 递增 `manifest.json` 的 `version`（本项目当前 `0.3.4`），同步 `backend/main.go` 的
    `pluginVersion`，让宿主 `plugin/initialize` 回报的版本与 manifest 一致。
-2. 提交并打 Tag：`git tag v0.3.3 && git push origin v0.3.3`。
+2. 提交并打 Tag：`git tag v0.3.4 && git push origin v0.3.4`。
 3. 在 GitHub 创建 Release（`published`），工作流
    [`.github/workflows/plugin-release.yml`](../.github/workflows/plugin-release.yml) 会自动触发。
 
 工作流做的事（`plugin-release-reusable.yml`）：
 
 - 按 `build-matrix` 在 5 个 runner 上分别执行 `DBX_PLUGIN_TARGET=<target> dbx-plugin package .`，
-  产出 `dist/com.dbx.dbf-0.3.3-<target>.dbxp` 与 `.artifact.json`；
+  产出 `dist/com.dbx.dbf-0.3.4-<target>.dbxp` 与 `.artifact.json`；
 - 校验：target 名合法性、`sha256` 为 64 位十六进制、`size` 与包字节一致、
   候选包**不含** `signature.json`、候选 metadata **不含** `signingKeyId`、
   5 个平台的 manifest 身份（id/name/description/publisher/version/permissions）完全一致；
@@ -63,14 +61,14 @@
   "schemaVersion": 1,
   "id": "com.dbx.dbf",
   "publisher": "qingkong9579",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "name": "DBF Studio",
-  "source": "https://github.com/qingkong9579/dbx.dbf/tree/v0.3.3",
+  "source": "https://github.com/qingkong9579/dbx.dbf/tree/v0.3.4",
   "license": "MIT",
   "targets": [
     {
       "target": "windows-x64",
-      "url": "https://github.com/qingkong9579/dbx.dbf/releases/download/v0.3.3/com.dbx.dbf-0.3.3-windows-x64.dbxp",
+      "url": "https://github.com/qingkong9579/dbx.dbf/releases/download/v0.3.4/com.dbx.dbf-0.3.4-windows-x64.dbxp",
       "sha256": "<包文件的 64 位 SHA-256>",
       "size": 2400000
     }
@@ -116,8 +114,8 @@ dbx-plugin dev --path . --port 5190
 
 # 3) 打包当前平台并核对包内容
 dbx-plugin package .
-tar -tf dist/com.dbx.dbf-0.3.3-windows-x64.dbxp
-Get-Content dist/com.dbx.dbf-0.3.3-windows-x64.artifact.json
+tar -tf dist/com.dbx.dbf-0.3.4-windows-x64.dbxp
+Get-Content dist/com.dbx.dbf-0.3.4-windows-x64.artifact.json
 ```
 
 - 包内不应出现 `ui/samples` 之外的开发文件、`.dbx-dev/`、`dist/`、`_ref/`；

@@ -24,7 +24,7 @@ import (
 
 const (
 	pluginID      = "com.dbx.dbf"
-	pluginVersion = "0.3.3"
+	pluginVersion = "0.3.4"
 
 	maxReadChunk = 1024 * 1024 // 单次 dbf/read 上限
 	maxWriteByte = 1024 * 1024 // 单次 dbf/write-chunk 上限

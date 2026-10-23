@@ -2,7 +2,7 @@
 
 面向证券登记结算交换文件的 DBF 工作台：打开、阅读、编辑、校验、导出 DBF 数据表，内置深市 D-COM、沪市 PROP 与沪市上市公司版字段释义。
 
-- 插件 ID：`com.dbx.dbf` · 版本 `0.3.2` · 前端工作台 + Go 原生 sidecar（CI 构建 windows-x64 / linux-x64 / linux-arm64 / darwin-x64 / darwin-arm64）
+- 插件 ID：`com.dbx.dbf` · 版本 `0.3.4` · 前端工作台 + Go 原生 sidecar（CI 构建 windows-x64 / linux-x64 / linux-arm64 / darwin-x64 / darwin-arm64）
 - 作者：微茫之心 · 仓库：[`qingkong9579/dbx.dbf`](https://github.com/qingkong9579/dbx.dbf) · 问题与建议请走仓库 Issues
 - 宿主要求：DBX `>= 0.5.68`，Host API `1`，sidecar 协议 `stdio-jsonl` / protocol 1
 - 参考实现：EasyDBF（Java，GBK/D-COM/PROP 支持）与 DBF Viewer Plus（Delphi，`DBFPlus.exe`，REA 静态分析，见 [`docs/analysis.md`](docs/analysis.md)）
@@ -31,13 +31,14 @@
 - 单元格双击/回车内联编辑，Tab 串列，Esc 取消；数值、日期、逻辑与超长文本即时校验
 - 记录导航（首/上/下/尾、跳转记录号）、分页（100/200/500/1000/5000/全部）
 - 搜索（任意字段或指定字段、上下循环）、过滤（输入关键字或 `字段=值`）、显示已删除记录
-- 记录详情面板：逐字段值 + 中文名 + 复制；备注（M）与二进制（G/P）查看器
-- 全表校验面板：非数值、小数位超限、日期格式、非法日期、逻辑值、超出字段长度；点击定位到单元格
+- 记录详情面板：逐字段值 + 中文名 + 复制；备注（M）与二进制（G/P）查看器；少量代码字段（如交易市场 SCDM）直接给出中文含义
+- 全表校验面板：非数值、整数位/小数位超限、日期格式、非法日期、逻辑值、超出字段长度、含换行或控制字符；点击定位到单元格
+- 文件信息面板识别「前缀_YYYYMMDD」命名约定，显示该文件的数据日期
 
 **数据表工具**
 
 - 保存（原地覆盖或另存为）、整理数据表（物理清除已删除记录）、清空数据表、切换表头版本（dBase III+/IV/V）
-- 新建表：S68 模板（18 字段）、req 模板（14 字段）或空白表；CSV 导入（分隔符嗅探、编码判定、类型推断）
+- 新建表：S68 模板（18 字段）、req 模板（14 字段）或空白表，可选表版本（dBase III+/IV/V，记住上次选择）；CSV 导入（分隔符嗅探、编码判定、类型推断）
 
 **导出**
 
@@ -98,7 +99,7 @@ CSV、JSON、SQL（标准 / MySQL）、HTML、Markdown、Excel 2003 XML、DBF、
 
 ```bash
 cd backend && go build -o bin/dbx-dbf-backend.exe .   # 编译 sidecar（linux/macos 换 GOOS）
-cd .. && dbx-plugin package .                          # 产出 dist/com.dbx.dbf-0.3.2-<target>.dbxp
+cd .. && dbx-plugin package .                          # 产出 dist/com.dbx.dbf-0.3.4-<target>.dbxp
 dbx-plugin dev --path . --port 5190                    # 独立调试宿主（会启动 sidecar）
 uv run --no-project --python 3.12 python tools/gen-samples.py   # 重新生成构造示例表
 ```
@@ -141,10 +142,11 @@ docs/analysis.md       REA 静态分析记录与设计取舍
 
 ## 发布
 
-`dbx-plugin package .` 产出未签名 `dist/com.dbx.dbf-0.3.3-windows-x64.dbxp` 与 `.artifact.json`（`backend/bin` 会被改写成包内 `bin/windows-x64/dbx-dbf-backend.exe`）；本地安装需在插件中心开启「允许安装未签名开发包」。正式上架流程（`.dbx-store.json`、GitHub Release 候选包、DBX Store 审核与签名、上架要素清单）见 [`docs/store.md`](docs/store.md)。
+`dbx-plugin package .` 产出未签名 `dist/com.dbx.dbf-0.3.4-windows-x64.dbxp` 与 `.artifact.json`（`backend/bin` 会被改写成包内 `bin/windows-x64/dbx-dbf-backend.exe`）；本地安装需在插件中心开启「允许安装未签名开发包」。正式上架流程（`.dbx-store.json`、GitHub Release 候选包、DBX Store 审核与签名、上架要素清单）见 [`docs/store.md`](docs/store.md)。
 
 ## 变更
 
+- `0.3.4`：校验规则增加「整数位超出上限」与「含换行或控制字符」，问题列表随界面语言切换；详情面板为交易市场代码等少量代码字段给出中文含义；文件信息面板识别「前缀_YYYYMMDD」命名并显示数据日期；新建表可选表版本（dBase III+/IV/V）并记住上次选择。
 - `0.3.3`：新增手动更换编码重新打开——编码按钮菜单提供「自动识别 + 8 种编码」，编码设置对话框带前三行实时预览与「记住此文件的编码」；修复自动识别在 LDID 为 0 时把编码对象当作字符串、导致回退 UTF-8 而乱码的问题（优先级改为 严格 UTF-8 探测 > LDID > 交换文件族 > 文件名），保存时按当前编码写入对应 LDID。
 - `0.3.2`：全新插件图标（渐变徽章 + 数据表文档 + 折叠角），插件中心、商店与工作台内统一展示；功能与 0.3.1 一致。
 - `0.3.1`：补充作者与开源地址（关于对话框可直接复制仓库链接），`manifest.json` 增加 `publisher` / `source` / `homepage`，新增商店元数据 `.dbx-store.json` 与上架说明 `docs/store.md`。
