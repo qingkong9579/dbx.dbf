@@ -733,6 +733,7 @@
       if (!cnText && state.notes[f.name]) cnText = state.notes[f.name];
       if (!cnText) cnText = T("field.dictMissing");
       const cn = el("span", { class: "field-cn" + (d.cn ? "" : " missing"), text: cnText });
+      if (d.cn && d.confidence === "custom") cn.appendChild(el("span", { class: "custom", text: T("field.custom") }));
       if (d.cn && d.confidence === "inferred") cn.appendChild(el("span", { class: "inferred", text: T("field.inferred") }));
       cn.title = d.hint || d.source || "";
       body.appendChild(cn);
@@ -1878,6 +1879,8 @@
     const p = await Host.getStore("prefs");
     if (p && typeof p === "object") state.prefs = Object.assign(state.prefs, p);
     if (state.prefs.notes == null) state.prefs.notes = {};
+    if (!state.prefs.columns || typeof state.prefs.columns !== "object") state.prefs.columns = {};
+    if (g.DBF_DICT && g.DBF_DICT.setUser) g.DBF_DICT.setUser(state.prefs.columns, "replace");
   }
 
   /* ---------------------------------------------------------------- events */
@@ -2004,6 +2007,11 @@
         { text: T("enc.dialog") + "…", onClick: () => App.encodingDialog && App.encodingDialog() },
         { text: T("col.fit"), onClick: fitColumns },
         { text: T("view.density") + (state.prefs.density === "compact" ? " ✓" : ""), onClick: () => toggleDensity() },
+        { sep: true },
+        { label: T("dict.menu") },
+        { text: T("dict.export") + "…", icon: "export", onClick: () => exportColumnDict() },
+        { text: T("dict.import") + "…", icon: "import", onClick: () => importColumnDict() },
+        { text: T("dict.clear") + "…", onClick: () => clearColumnDict() },
         { sep: true },
         { label: T("table.tools") },
         { text: T("table.pack"), onClick: () => packTable() },
@@ -2191,6 +2199,107 @@
 
   function setEncoding(enc) {
     return reopenWithEncoding(enc, true);
+  }
+
+  /* ---- 字段释义（列名 ↔ 中文名）：运行期导入 / 导出，数据层与规则层解耦 ---- */
+
+  function dictApi() {
+    return g.DBF_DICT || null;
+  }
+
+  function syncColumnPrefs() {
+    const dict = dictApi();
+    if (!dict) return;
+    state.prefs.columns = dict.userColumns();
+    savePrefsDebounced();
+  }
+
+  /** 导出：当前数据表的字段名 + 已有中文名（含自定义覆盖），可直接编辑后回传 */
+  async function exportColumnDict() {
+    const dict = dictApi();
+    if (!dict) return;
+    const map = {};
+    if (state.header) {
+      for (const f of visibleFields()) {
+        const d = dict.describeField(state.source.name, f.name);
+        map[f.name] = d.cn || "";
+      }
+    } else {
+      Object.assign(map, dict.userColumns());
+    }
+    if (!Object.keys(map).length) {
+      toast(T("dict.none"), "warn");
+      return;
+    }
+    const payload = {
+      $schema: "dbf-studio/columns-cn@1",
+      plugin: "com.dbx.dbf",
+      file: state.source ? state.source.name : "",
+      exported: new Date().toISOString(),
+      columns: map,
+    };
+    const base = state.source ? stemOf(state.source.name) : "columns";
+    const name = base + ".columns.json";
+    const bytes = new TextEncoder().encode(JSON.stringify(payload, null, 2));
+    try {
+      await Host.save(name, bytes, "application/json");
+      toast(T("dict.exported", { name }), "ok");
+    } catch (err) {
+      toast(String(err.message || err), "err");
+    }
+  }
+
+  /** 导入：合并（同名覆盖）自定义释义，持久化到宿主存储 */
+  async function importColumnDict() {
+    const dict = dictApi();
+    if (!dict || !Host.can("read") || !Host.can("pick")) {
+      toast(T("msg.noSource"), "warn");
+      return;
+    }
+    let picked;
+    try {
+      picked = await Host.pick(true);
+    } catch (err) {
+      toast(String(err.message || err), "err");
+      return;
+    }
+    if (!picked || !picked.length) return;
+    let added = 0;
+    let bad = 0;
+    for (const src of picked) {
+      try {
+        const bytes = await readAll(src);
+        const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+        const json = JSON.parse(text);
+        added += dict.setUser(json, "merge");
+      } catch (err) {
+        bad += 1;
+      }
+    }
+    if (added) {
+      syncColumnPrefs();
+      renderAll();
+      toast(T("dict.imported", { n: added }), "ok");
+    } else {
+      toast(T("dict.invalid"), "err");
+    }
+    if (bad && added) toast(T("dict.invalid"), "warn");
+  }
+
+  async function clearColumnDict() {
+    const dict = dictApi();
+    if (!dict) return;
+    const count = Object.keys(dict.userColumns()).length;
+    if (!count) {
+      toast(T("dict.none"), "warn");
+      return;
+    }
+    const ok = await confirmDialog(T("dict.clear"), T("dict.confirmClear", { n: count }), T("common.ok"));
+    if (!ok) return;
+    dict.clearUser();
+    syncColumnPrefs();
+    renderAll();
+    toast(T("dict.cleared"), "ok");
   }
 
   function closeTable() {
@@ -2675,6 +2784,9 @@
     setEncoding,
     reopenWithEncoding,
     rememberEncoding,
+    exportColumnDict,
+    importColumnDict,
+    clearColumnDict,
     scheduleValidate,
     loadSample,
     openConnection,

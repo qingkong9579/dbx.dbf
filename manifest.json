@@ -3,7 +3,7 @@
   "manifest_version": 1,
   "id": "com.dbx.dbf",
   "name": "DBF Studio",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "publisher": "qingkong9579",
   "description": "Open, inspect, edit, validate and export DBF tables (dBase III/IV/V, FoxPro, VFP), with built-in field dictionaries for Chinese exchange settlement files.",
   "source": "https://github.com/qingkong9579/dbx.dbf",

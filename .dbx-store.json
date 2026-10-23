@@ -20,7 +20,7 @@
   "source": "https://github.com/qingkong9579/dbx.dbf",
   "homepage": "https://github.com/qingkong9579/dbx.dbf#readme",
   "license": "MIT",
-  "releaseNotes": "0.3.4：校验规则新增整数位上限与换行/控制字符检查，问题列表随界面语言显示；详情面板为交易市场代码等字段给出中文含义；识别「前缀_YYYYMMDD」命名并显示数据日期；新建表可选 dBase III+/IV/V 表版本。",
+  "releaseNotes": "0.3.5：字段释义解耦——列名与中文名的对应关系独立为数据文件，新增「字段释义」菜单可导出当前表释义、导入自定义释义（优先级最高）、清空自定义释义；侧栏与字段对话框标注「自定义」。",
   "localizations": {
     "zh-CN": {
       "name": "DBF Studio",
