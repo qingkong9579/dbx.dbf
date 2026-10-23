@@ -634,6 +634,130 @@
     columnsMenu(document.querySelector("#columnsBtn"));
   }
 
+  /* --------------------------------------------------------------- encoding */
+
+  /** decode the first text cells with a candidate encoding, for the dialog preview */
+  function encodingSample(enc) {
+    const state = App.state;
+    const DBF = g.DBF;
+    const header = state.header;
+    if (!header || !state.buf) return [];
+    const fields = header.fields.filter((f) => f.kind === "text" && f.length >= 2).slice(0, 4);
+    if (!fields.length) return [];
+    const count = Math.min(state.rows.length, 3);
+    const out = [];
+    for (let r = 0; r < count; r += 1) {
+      const base = header.headerLength + r * header.recordLength;
+      const cells = [];
+      for (const f of fields) {
+        let text = "";
+        try {
+          text = String(DBF.decodeBytes(state.buf.subarray(base + f.offset, base + f.offset + f.length), enc) || "").trim();
+        } catch (err) {
+          text = "";
+        }
+        cells.push(text || T("common.empty"));
+      }
+      out.push(cells.join("  ·  "));
+    }
+    return out;
+  }
+
+  function encName(id) {
+    return id === "gbk" ? "GBK" : String(id || "").toUpperCase();
+  }
+
+  function encodingDialog() {
+    const state = App.state;
+    if (!state.header) return;
+    const DBF = g.DBF;
+    const autoEnc = DBF.normEncoding(state.autoEncoding || state.encoding);
+    const fileName = state.source ? state.source.name : "";
+    const remembered = (state.prefs.encodings || {})[fileName] || "";
+    let pickd = state.manualEncoding || "auto";
+
+    const body = el("div", { class: "form" });
+    body.appendChild(el("p", { class: "form-hint", text: T("enc.dialogHint") }));
+
+    const list = el("div", { class: "choice-list" });
+    const preview = el("pre", { class: "enc-preview" });
+    const previewWrap = el("div", { class: "enc-preview-wrap" });
+
+    const renderPreview = () => {
+      const enc = pickd === "auto" ? autoEnc : pickd;
+      const lines = encodingSample(enc);
+      preview.textContent = lines.length ? lines.join("\n") : T("enc.previewEmpty");
+      preview.classList.toggle("is-empty", !lines.length);
+      previewWrap.title = encName(enc);
+    };
+
+    const addChoice = (id, label, current) => {
+      const row = el("label", { class: "choice-item" });
+      const radio = el("input", { type: "radio", name: "encpick", value: id });
+      radio.checked = id === pickd;
+      radio.addEventListener("change", () => {
+        pickd = id;
+        renderPreview();
+      });
+      row.appendChild(radio);
+      row.appendChild(el("span", { text: label }));
+      if (current) row.appendChild(el("span", { class: "badge", text: T("dlg.version.current") }));
+      list.appendChild(row);
+    };
+
+    addChoice("auto", T("enc.autoItem", { enc: encName(autoEnc) }), !state.manualEncoding);
+    DBF.ENCODING_CHOICES.forEach((c) => {
+      const id = DBF.normEncoding(c.id);
+      addChoice(id, c.label, !!state.manualEncoding && state.manualEncoding === id);
+    });
+    body.appendChild(list);
+
+    const rememberBox = el("label", { class: "check-row" });
+    const rememberInput = el("input", { type: "checkbox" });
+    rememberInput.checked = !!remembered || !!state.manualEncoding;
+    if (state.manualEncoding) rememberInput.checked = true;
+    rememberBox.appendChild(rememberInput);
+    rememberBox.appendChild(el("span", { text: T("enc.remember") }));
+    body.appendChild(rememberBox);
+
+    if (remembered) {
+      const forget = el("button", { class: "btn tiny ghost", type: "button", text: T("enc.forget") });
+      forget.addEventListener("click", () => {
+        App.rememberEncoding(fileName, "");
+        forget.remove();
+        App.toast(T("enc.forget"), "ok");
+      });
+      body.appendChild(forget);
+    }
+
+    body.appendChild(el("div", { class: "enc-preview-label", text: T("enc.preview") }));
+    previewWrap.appendChild(preview);
+    body.appendChild(previewWrap);
+    renderPreview();
+
+    App.modal({
+      title: T("enc.dialogTitle"),
+      body,
+      actions: [
+        { label: T("common.cancel"), onClick: () => {} },
+        {
+          label: T("enc.apply"),
+          primary: true,
+          onClick: async () => {
+            const want = pickd === "auto" ? "auto" : DBF.normEncoding(pickd);
+            const remember = rememberInput.checked;
+            if (want === "auto" && !state.manualEncoding) {
+              App.rememberEncoding(fileName, "");
+              App.toast(T("enc.changed", { enc: encName(autoEnc) }), "ok");
+              return;
+            }
+            await App.reopenWithEncoding(want, remember);
+          },
+        },
+      ],
+    });
+  }
+
   /* ------------------------------------------------------------------ about */
 
   function aboutDialog() {
@@ -646,7 +770,7 @@
       : "";
     const repo = "https://github.com/qingkong9579/dbx.dbf";
     const rows = [
-      [T("dlg.about.version"), "0.3.2"],
+      [T("dlg.about.version"), "0.3.3"],
       [T("dlg.about.author"), T("dlg.about.authorName")],
       [T("dlg.about.source"), repo, true],
       [T("info.version"), "DBF II / III / IV / FoxPro 2.x / 2.5"],
@@ -687,6 +811,7 @@
   App.newTableDialog = newTableDialog;
   App.columnsMenu = columnsMenu;
   App.columnsDialog = columnsDialog;
+  App.encodingDialog = encodingDialog;
   App.aboutDialog = aboutDialog;
   App.__el = function (tag, attrs, children) {
     const node = document.createElement(tag);

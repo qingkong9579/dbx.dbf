@@ -15,7 +15,8 @@
 
 - 打开单个 DBF 或一次选中多个（含备注文件 `.DBT` / `.FPT`）；支持把文件或整个目录拖入窗口
 - 识别 dBase II/III+/IV/V、Visual Objects、FoxBASE、FoxPro 2.x、Visual FoxPro 及其带备注变体，读取表头、字段描述区、删除标记与 MDX 标志
-- 编码自动判定：按 LDID（0x4D=GBK 等）+ 严格 UTF-8 探测；中文交换表族（S68/req/SJS…）默认 GBK，保证回写编码一致；可手动切换 GBK / UTF-8 / Big5 / Shift-JIS / 949 / 1252 / 437 / 866
+- 编码自动判定：按 LDID（0x4D=GBK 等）+ 严格 UTF-8 探测；中文交换表族（S68/req/SJS…）默认 GBK，保证回写编码一致
+- 手动更换编码重新打开：顶栏编码按钮或「更多 ⋯ → 编码设置…」打开编码对话框，可从 GBK / UTF-8 / Big5 / Shift-JIS / 949 / 1252 / 437 / 866 中任选，右侧实时预览前三行文本；可勾选「记住此文件的编码」，下次打开同名文件自动套用（`storage` 持久化）。手动编码会在按钮与状态栏标出“手动”，保存时按该编码写入并同步写回 LDID
 - 内置构造示例（全部为虚构数据）：`S68.DBF`（深市登记结算申报，18 字段）、`req.dbf`（沪市文件传输请求，14 字段）、`T1600001.DBF`（上市公司持有人名册，13 字段），点击即可加载
 
 **字段结构**
@@ -140,10 +141,11 @@ docs/analysis.md       REA 静态分析记录与设计取舍
 
 ## 发布
 
-`dbx-plugin package .` 产出未签名 `dist/com.dbx.dbf-0.3.2-windows-x64.dbxp` 与 `.artifact.json`（`backend/bin` 会被改写成包内 `bin/windows-x64/dbx-dbf-backend.exe`）；本地安装需在插件中心开启「允许安装未签名开发包」。正式上架流程（`.dbx-store.json`、GitHub Release 候选包、DBX Store 审核与签名、上架要素清单）见 [`docs/store.md`](docs/store.md)。
+`dbx-plugin package .` 产出未签名 `dist/com.dbx.dbf-0.3.3-windows-x64.dbxp` 与 `.artifact.json`（`backend/bin` 会被改写成包内 `bin/windows-x64/dbx-dbf-backend.exe`）；本地安装需在插件中心开启「允许安装未签名开发包」。正式上架流程（`.dbx-store.json`、GitHub Release 候选包、DBX Store 审核与签名、上架要素清单）见 [`docs/store.md`](docs/store.md)。
 
 ## 变更
 
+- `0.3.3`：新增手动更换编码重新打开——编码按钮菜单提供「自动识别 + 8 种编码」，编码设置对话框带前三行实时预览与「记住此文件的编码」；修复自动识别在 LDID 为 0 时把编码对象当作字符串、导致回退 UTF-8 而乱码的问题（优先级改为 严格 UTF-8 探测 > LDID > 交换文件族 > 文件名），保存时按当前编码写入对应 LDID。
 - `0.3.2`：全新插件图标（渐变徽章 + 数据表文档 + 折叠角），插件中心、商店与工作台内统一展示；功能与 0.3.1 一致。
 - `0.3.1`：补充作者与开源地址（关于对话框可直接复制仓库链接），`manifest.json` 增加 `publisher` / `source` / `homepage`，新增商店元数据 `.dbx-store.json` 与上架说明 `docs/store.md`。
 - `0.3.0`：接入《登记结算数据接口规范（上市公司版 V3.19）》20 类文件的字段字典（按文件前缀分表，146 个字段并集），新增 `T1600001.DBF` 构造示例与新建表模板；文件信息面板补充「数据类型 / 规范来源」，语言驱动与最后更新日期改为可读格式。

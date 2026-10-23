@@ -124,6 +124,15 @@
     { id: "cp866", label: "Русский (866)", ldid: 0x26 },
   ];
 
+  /** language driver id for an encoding id (falls back to 0x00 = unspecified) */
+  function encodingLdid(enc) {
+    const id = normEncoding(enc);
+    for (let i = 0; i < ENCODING_CHOICES.length; i += 1) {
+      if (ENCODING_CHOICES[i].id === id) return ENCODING_CHOICES[i].ldid;
+    }
+    return 0x00;
+  }
+
   const ENC_ALIAS = {
     "cp936": "gbk",
     "gb2312": "gbk",
@@ -1037,6 +1046,7 @@ ${body}
     encodeText,
     canEncode,
     normEncoding,
+    encodingLdid,
     fmtDate,
     dateToYmd,
     isValidDate,

@@ -1001,6 +1001,26 @@ svg.ico.big { width: 34px; height: 34px; stroke-width: 1.3; }
 .choice-item input { accent-color: var(--brand); }
 .choice-item:has(input:checked) { border-color: var(--brand); background: var(--sel-row); }
 .choice-item .badge { margin-left: auto; }
+.enc-preview-label { margin-top: 10px; font-size: 11px; color: var(--fg-muted); }
+.enc-preview-wrap {
+  margin-top: 4px;
+  max-height: 118px;
+  overflow: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+}
+.enc-preview {
+  margin: 0;
+  font: 400 11.5px/1.7 var(--font-mono);
+  color: var(--fg);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.enc-preview.is-empty { color: var(--fg-faint); font: italic 12px/1.6 var(--font-sans); }
+#encodingBtn.is-manual { color: var(--brand); }
+#encodingBtn.is-manual .icon { color: var(--brand); }
 .field-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .field-table th, .field-table td { padding: 4px 6px; border-bottom: 1px solid var(--grid-line); text-align: left; }
 .field-table th { font-size: 10.5px; color: var(--fg-muted); font-weight: 600; }

@@ -337,13 +337,14 @@
     header: null,
     encoding: "gbk",
     autoEncoding: "",
+    manualEncoding: "",
     rows: [],
     dirty: false,
     readonly: false,
     sample: "",
     memo: { reader: null, kind: "", name: "", buffer: null, cache: new Map() },
     notes: {},
-    prefs: { locale: "", density: "normal", pageSize: 500, showDeleted: false, detail: true, sidebar: true, appearance: "auto", connTable: {} },
+    prefs: { locale: "", density: "normal", pageSize: 500, showDeleted: false, detail: true, sidebar: true, appearance: "auto", connTable: {}, encodings: {} },
     view: { hidden: new Set(), widths: {}, sort: { col: -1, dir: 0 }, filter: "", page: 0 },
     sel: { row: -1, col: 0 },
     search: { term: "", field: -1, hits: [], at: -1 },
@@ -535,7 +536,11 @@
       ui.fileName.title = state.source ? state.source.path || state.source.name : "";
       ui.fileVersion.textContent = state.header.versionName;
       ui.fileVersion.className = "badge" + (state.header.layoutValid ? "" : " warn");
-      ui.encodingLabel.textContent = state.encoding === "gbk" ? "GBK" : state.encoding.toUpperCase();
+      const encLabel = state.encoding === "gbk" ? "GBK" : state.encoding.toUpperCase();
+      const manual = !!state.manualEncoding;
+      ui.encodingLabel.textContent = encLabel;
+      ui.encodingBtn.title = T("enc.tip", { enc: encLabel, mode: manual ? T("enc.manual") : T("enc.auto") });
+      ui.encodingBtn.classList.toggle("is-manual", manual);
       ui.recordTotal.textContent = "/ " + state.rows.length;
       ui.recordNo.value = state.sel.row >= 0 ? String(state.sel.row + 1) : "0";
       ui.pager.hidden = state.rows.length <= Math.min(200, pageSize() || 1e9);
@@ -886,7 +891,8 @@
       ui.stIssues.textContent = T("status.noIssues");
       ui.stIssues.className = "status-item badge-ok";
     }
-    ui.stEncoding.textContent = state.encoding.toUpperCase() + (state.autoEncoding && state.autoEncoding !== state.encoding ? " ← " + state.autoEncoding.toUpperCase() : "");
+    const encName = state.encoding === "gbk" ? "GBK" : state.encoding.toUpperCase();
+    ui.stEncoding.textContent = state.manualEncoding ? encName + " · " + T("enc.manual") : encName;
   }
 
   function renderIssues() {
@@ -1167,8 +1173,8 @@
       const header0 = DBF.parseHeader(buf);
       const recSample = buf.subarray(header0.headerLength, Math.min(buf.length, header0.headerLength + header0.recordLength * 64));
       const auto = DBF.detectEncoding(header0, recSample);
-      const enc = chooseEncoding(header0, auto, target.name);
-      loadTable(target, buf, header0, enc);
+      const pick = pickEncoding(header0, auto, target.name);
+      loadTable(target, buf, header0, pick.enc, auto.encoding, pick.manual);
 
       if (header0.hasMemo) {
         const stem = stemOf(target.name);
@@ -1187,23 +1193,45 @@
     }
   }
 
+  /**
+   * Decide the encoding for a freshly parsed table.
+   * `auto` is either a DBF.detectEncoding() result or a plain encoding id.
+   * Priority: strictly-valid UTF-8 content > language driver > file family > name hint.
+   */
   function chooseEncoding(header, auto, name) {
+    const autoEnc = auto && typeof auto === "object" ? auto.encoding : auto;
     const fam = g.DBF_DICT ? g.DBF_DICT.familyOf(name) : null;
+    if (autoEnc === "utf-8") return "utf-8"; // content proved to be UTF-8, ldid often lies
     if (header.ldidEncoding) return DBF.normEncoding(header.ldidEncoding);
-    if (auto === "utf-8") return "utf-8";
     if (fam) return "gbk"; // Chinese exchange files: default to GBK even when ASCII-only
     if (/[\u4e00-\u9fff]/.test(String(name))) return "gbk";
-    return auto || "gbk";
+    return autoEnc || "gbk";
   }
 
-  function loadTable(src, buf, header, enc) {
+  /** manual encoding remembered for this file name, if any */
+  function rememberedEncoding(name) {
+    const map = state.prefs.encodings || null;
+    const hit = map && name ? map[name] : "";
+    return hit ? DBF.normEncoding(hit) : "";
+  }
+
+  /** resolve {enc, manual} for an opened table */
+  function pickEncoding(header, auto, name) {
+    const remembered = rememberedEncoding(name);
+    if (remembered) return { enc: remembered, manual: true };
+    const autoEnc = auto && typeof auto === "object" ? auto.encoding : auto;
+    return { enc: chooseEncoding(header, auto, name), manual: false, autoEnc };
+  }
+
+  function loadTable(src, buf, header, enc, autoEnc, manual) {
     const decoded = decodeRows(buf, header, enc);
     state.source = src;
     state.sources = [src];
     state.buf = buf;
     state.header = header;
     state.encoding = enc;
-    state.autoEncoding = enc;
+    state.autoEncoding = autoEnc || enc;
+    state.manualEncoding = manual ? enc : "";
     state.rows = decoded.rows;
     state.view = { hidden: new Set(), widths: {}, sort: { col: -1, dir: 0 }, filter: "", page: 0 };
     state.sel = { row: decoded.rows.length ? 0 : -1, col: 0 };
@@ -1222,6 +1250,7 @@
     fillSearchFields();
     state.view.widths = autoWidths(header, decoded.rows);
     scheduleValidate();
+    if (manual) toast(T("enc.restored", { enc: state.encoding === "gbk" ? "GBK" : state.encoding.toUpperCase() }), "");
   }
 
   /** first-load column widths from the actual data (users can still resize) */
@@ -1395,7 +1424,7 @@
         rows: state.rows.map((r) => r.v),
         deleted: state.rows.map((r) => r.del),
         encoding: state.encoding,
-        ldid: state.encoding === "gbk" ? 0x4d : 0x00,
+        ldid: DBF.encodingLdid(state.encoding),
         version: state.header.version,
       });
       if (inPlace) {
@@ -1915,11 +1944,23 @@
     });
     $("#searchNextBtn").addEventListener("click", nextHit);
     $("#encodingBtn").addEventListener("click", (ev) => {
-      const items = DBF.ENCODING_CHOICES.map((c) => ({
-        text: c.label,
-        checked: DBF.normEncoding(c.id) === state.encoding,
-        onClick: () => setEncoding(c.id),
-      }));
+      const autoEnc = DBF.normEncoding(state.autoEncoding || state.encoding);
+      const autoName = autoEnc === "gbk" ? "GBK" : autoEnc.toUpperCase();
+      const items = [
+        {
+          text: T("enc.autoItem", { enc: autoName }),
+          checked: !state.manualEncoding,
+          onClick: () => reopenWithEncoding("auto", true),
+        },
+        { sep: true },
+        ...DBF.ENCODING_CHOICES.map((c) => ({
+          text: c.label,
+          checked: DBF.normEncoding(c.id) === state.encoding,
+          onClick: () => reopenWithEncoding(c.id, true),
+        })),
+        { sep: true },
+        { text: T("enc.dialog") + "…", onClick: () => App.encodingDialog && App.encodingDialog() },
+      ];
       openMenu(ev.currentTarget, items);
     });
     $("#exportBtn").addEventListener("click", () => App.exportDialog());
@@ -1941,6 +1982,7 @@
         { text: T("btn.newTable"), icon: "plus", onClick: () => App.newTableDialog() },
         { sep: true },
         { text: T("col.settings"), icon: "columns", onClick: () => App.columnsDialog() },
+        { text: T("enc.dialog") + "…", onClick: () => App.encodingDialog && App.encodingDialog() },
         { text: T("col.fit"), onClick: fitColumns },
         { text: T("view.density") + (state.prefs.density === "compact" ? " ✓" : ""), onClick: () => toggleDensity() },
         { sep: true },
@@ -2015,8 +2057,18 @@
         $$(".detail-pane").forEach((p) => p.classList.toggle("is-active", p.dataset.detailPane === tab.dataset.detailTab));
       });
     });
-    $("#fileCloseBtn").addEventListener("click", () => closeTable());
+    $("#fileCloseBtn").addEventListener("click", async (ev) => {
+      ev.stopPropagation();
+      if (!state.source) return;
+      if (!state.dirty) {
+        closeTable();
+        return;
+      }
+      const ok = await confirmDialog(T("btn.close"), T("msg.dirtyCancel"), T("common.close"), true);
+      if (ok) closeTable();
+    });
     $("#fileChip").addEventListener("click", async (ev) => {
+      if (ev.target.closest("#encodingBtn, #fileCloseBtn")) return;
       if (!state.source) return;
       if (state.conn && state.source.connectionId) {
         const items = connMenuItems();
@@ -2025,8 +2077,6 @@
           return;
         }
       }
-      const ok = await confirmDialog(T("btn.close"), T("msg.dirtyCancel"), T("common.close"), true);
-      if (ok) closeTable();
     });
 
     window.addEventListener("resize", debounce(() => renderGrid(), 160));
@@ -2062,16 +2112,66 @@
     savePrefsDebounced();
   }
 
+  /**
+   * Re-decode the open table with another encoding — the "重新以 X 编码打开" action.
+   * Keeps page/selection/sort/hidden columns, drops unsaved edits after confirmation.
+   * enc === "auto" goes back to the auto-detected encoding.
+   */
+  async function reopenWithEncoding(enc, remember) {
+    if (!state.header || !state.source) return;
+    const isAuto = enc === "auto";
+    const next = isAuto ? DBF.normEncoding(state.autoEncoding || state.encoding) : DBF.normEncoding(enc);
+    if (!isAuto && next === state.encoding) {
+      if (remember) rememberEncoding(state.source.name, next);
+      renderChrome();
+      return;
+    }
+    if (state.dirty) {
+      const ok = await confirmDialog(T("enc.title"), T("enc.discardDirty"), T("enc.reopen"));
+      if (!ok) return;
+    }
+    loadingBar(true);
+    try {
+      const buf = state.buf || (await readAll(state.source));
+      const header = state.header;
+      const decoded = decodeRows(buf, header, next);
+      state.buf = buf;
+      state.encoding = next;
+      state.manualEncoding = isAuto ? "" : next;
+      if (isAuto) state.autoEncoding = next;
+      state.rows = decoded.rows;
+      state.dirty = false;
+      state.issues = [];
+      const total = Math.max(1, Math.ceil(decoded.rows.length / (pageSize() || 1)));
+      state.view.page = Math.min(state.view.page, total - 1);
+      state.view.widths = autoWidths(header, decoded.rows);
+      state.sel = {
+        row: decoded.rows.length ? Math.min(state.sel.row < 0 ? 0 : state.sel.row, decoded.rows.length - 1) : -1,
+        col: state.sel.col,
+      };
+      filterCache.key = "";
+      if (remember) rememberEncoding(state.source.name, isAuto ? "" : next);
+      renderAll();
+      scheduleValidate();
+      toast(T("enc.changed", { enc: next === "gbk" ? "GBK" : next.toUpperCase() }), "ok");
+    } catch (err) {
+      toast(String((err && err.message) || err), "err");
+    } finally {
+      loadingBar(false);
+    }
+  }
+
+  /** remember (or forget, when enc is empty) the manual encoding for a file name */
+  function rememberEncoding(name, enc) {
+    if (!name) return;
+    if (!state.prefs.encodings) state.prefs.encodings = {};
+    if (enc) state.prefs.encodings[name] = enc;
+    else delete state.prefs.encodings[name];
+    savePrefsDebounced();
+  }
+
   function setEncoding(enc) {
-    if (!state.header || DBF.normEncoding(enc) === state.encoding) return;
-    const next = DBF.normEncoding(enc);
-    const decoded = decodeRows(state.buf, state.header, next);
-    state.encoding = next;
-    state.rows = decoded.rows;
-    state.dirty = state.dirty || false;
-    filterCache.key = "";
-    renderAll();
-    toast(next.toUpperCase(), "ok");
+    return reopenWithEncoding(enc, true);
   }
 
   function closeTable() {
@@ -2080,6 +2180,8 @@
     state.header = null;
     state.rows = [];
     state.sample = "";
+    state.manualEncoding = "";
+    state.autoEncoding = "";
     state.memo = { reader: null, kind: "", name: "", buffer: null, cache: new Map() };
     state.issues = [];
     state.dirty = false;
@@ -2438,8 +2540,8 @@
       const header = DBF.parseHeader(buf);
       const recSample = buf.subarray(header.headerLength, Math.min(buf.length, header.headerLength + header.recordLength * 64));
       const auto = DBF.detectEncoding(header, recSample);
-      const enc = chooseEncoding(header, auto, name);
-      loadTable({ name, size: buf.length, path: name, readonly: false }, buf, header, enc);
+      const pick = pickEncoding(header, auto, name);
+      loadTable({ name, size: buf.length, path: name, readonly: false }, buf, header, pick.enc, auto.encoding, pick.manual);
       state.sample = name;
       state.meta = { title: pack ? pack.title : "", note: pack ? pack.note : "" };
       renderAll();
@@ -2550,7 +2652,10 @@
     versionDialog,
     openFieldDialog: null,
     dropField: null,
+    encodingDialog: null,
     setEncoding,
+    reopenWithEncoding,
+    rememberEncoding,
     scheduleValidate,
     loadSample,
     openConnection,
@@ -2576,7 +2681,7 @@
       const header = DBF.parseHeader(bytes);
       const recSample = bytes.subarray(header.headerLength, Math.min(bytes.length, header.headerLength + header.recordLength * 64));
       const auto = DBF.detectEncoding(header, recSample);
-      const enc = chooseEncoding(header, auto, name);
+      const pick = pickEncoding(header, auto, name);
       const src = {
         name,
         size: bytes.length,
@@ -2586,7 +2691,7 @@
           return Promise.resolve({ bytes: bytes.subarray(o, end), eof: end >= bytes.length });
         },
       };
-      loadTable(src, bytes, header, enc);
+      loadTable(src, bytes, header, pick.enc, auto.encoding, pick.manual);
       state.readonly = !!(opts && opts.readonly);
       renderAll();
       scheduleValidate();
@@ -2617,7 +2722,7 @@
       fields: nextFields.map((f) => ({ name: f.name, type: f.type, length: f.length, decimals: f.decimals || 0 })),
       rows: [],
       encoding: state.encoding,
-      ldid: state.encoding === "gbk" ? 0x4d : 0,
+      ldid: DBF.encodingLdid(state.encoding),
     });
     const header = DBF.parseHeader(probe.bytes);
     state.header = header;
