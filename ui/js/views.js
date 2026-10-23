@@ -465,9 +465,14 @@
     ]),
   };
 
+  function dateStamp() {
+    const d = new Date();
+    return String(d.getFullYear()) + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
+  }
+
   function newTableDialog() {
     let fields = PRESETS.s68.map((f) => Object.assign({}, f));
-    const nameInput = input({ value: "NEWTABLE.DBF" });
+    const nameInput = input({ value: "NEWTABLE_" + dateStamp() + ".DBF" });
     const presetSelect = select(
       [
         { id: "s68", label: () => T("dlg.newTable.presetS68") },
@@ -586,7 +591,7 @@
                 App.state.prefs.newVersion = version;
                 if (App.savePrefsDebounced) App.savePrefsDebounced();
               }
-              App.adopt(nameInput.value.trim() || "NEWTABLE.DBF", out.bytes);
+              App.adopt(nameInput.value.trim() || "NEWTABLE_" + dateStamp() + ".DBF", out.bytes);
             } catch (err) {
               App.toast(String(err.message || err), "err");
               return false;
