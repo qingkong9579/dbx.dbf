@@ -94,6 +94,58 @@
     return d.user;
   }
 
+  /* 大小写不敏感的取词：先直取，未命中再查该表的规范化索引（键统一大写）。 */
+  const normCache = new WeakMap();
+
+  function pick(map, up) {
+    if (!map) return "";
+    const direct = map[up];
+    if (direct) return String(direct);
+    let norm = normCache.get(map);
+    if (!norm) {
+      norm = new Map();
+      for (const k of Object.keys(map)) {
+        const kk = String(k || "").trim().toUpperCase();
+        if (!kk || norm.has(kk)) continue;
+        const v = String(map[k] || "").trim();
+        if (v) norm.set(kk, v);
+      }
+      normCache.set(map, norm);
+    }
+    return norm.get(up) || "";
+  }
+
+  /* 通用释义索引：任意文件、列名（不区分大小写）完全匹配即可命中。
+     合并 sz / s68 / req / gsss.union，同名列以先出现者为准（sz 优先），并记录来源数量。 */
+  let sharedCache = null;
+  let sharedKey = "";
+
+  function sharedIndex() {
+    const d = data();
+    const spec = gsss();
+    const key = [
+      Object.keys(d.sz || {}).length,
+      Object.keys(d.s68 || {}).length,
+      Object.keys(d.req || {}).length,
+      Object.keys(spec.union || {}).length,
+    ].join(":");
+    if (sharedCache && sharedKey === key) return sharedCache;
+    const index = new Map();
+    for (const map of [d.sz, d.s68, d.req, spec.union]) {
+      for (const name of Object.keys(map || {})) {
+        const up = String(name || "").trim().toUpperCase();
+        const cn = String(map[name] || "").trim();
+        if (!up || !cn) continue;
+        const hit = index.get(up);
+        if (hit) hit.n += 1;
+        else index.set(up, { cn, n: 1 });
+      }
+    }
+    sharedCache = index;
+    sharedKey = key;
+    return index;
+  }
+
   function baseName(fileName) {
     return String(fileName || "")
       .replace(/^.*[\\/]/, "")
@@ -138,34 +190,58 @@
   }
 
   function describeField(fileName, fieldName) {
-    const up = String(fieldName || "").toUpperCase();
+    const up = String(fieldName || "").trim().toUpperCase();
     const d = data();
     const fam = familyOf(fileName);
     const spec = gsss();
     let entry = null;
     let source = "";
-    const custom = userMap()[up];
+    let origin = "";
+    const custom = pick(userMap(), up);
     if (custom) {
-      entry = { cn: String(custom), confidence: "custom" };
+      entry = { cn: custom, confidence: "custom" };
       source = "自定义释义";
-    } else if (fam && fam.gsss) {
+      origin = "custom";
+    }
+    if (!entry && fam && fam.gsss) {
       const own = ((spec.files || {})[fam.gsss] || {}).fields || {};
-      if (own[up]) {
-        entry = { cn: own[up], confidence: "spec" };
+      const hitOwn = pick(own, up);
+      const hitUnion = pick(spec.union, up);
+      if (hitOwn) {
+        entry = { cn: hitOwn, confidence: "spec" };
         source = spec.spec || "";
-      } else if ((spec.union || {})[up]) {
-        entry = { cn: spec.union[up], confidence: "spec" };
+        origin = "family";
+      } else if (hitUnion) {
+        entry = { cn: hitUnion, confidence: "spec" };
         source = (spec.spec || "") + "（同类文件）";
+        origin = "family";
       }
-    } else if (fam && fam.id === "S68" && d.s68[up]) {
-      entry = { cn: d.s68[up], confidence: "inferred" };
+    }
+    const hitS68 = fam && fam.id === "S68" ? pick(d.s68, up) : "";
+    if (!entry && hitS68) {
+      entry = { cn: hitS68, confidence: "inferred" };
       source = "沪市 PROP 推断";
-    } else if (fam && fam.id === "REQ" && d.req[up]) {
-      entry = { cn: d.req[up], confidence: "inferred" };
+      origin = "family";
+    }
+    const hitReq = fam && fam.id === "REQ" ? pick(d.req, up) : "";
+    if (!entry && hitReq) {
+      entry = { cn: hitReq, confidence: "inferred" };
       source = "沪市 PROP 推断";
-    } else if (d.sz[up]) {
-      entry = { cn: d.sz[up], confidence: "spec" };
+      origin = "family";
+    }
+    const hitSz = fam && /^深市/.test(fam.spec || "") ? pick(d.sz, up) : "";
+    if (!entry && hitSz) {
+      entry = { cn: hitSz, confidence: "spec" };
       source = "深市接口规范 5.18";
+      origin = "family";
+    }
+    if (!entry) {
+      const hit = sharedIndex().get(up);
+      if (hit) {
+        entry = { cn: hit.cn, confidence: "shared" };
+        source = hit.n > 1 ? "通用字段释义（" + hit.n + " 个来源）" : "通用字段释义";
+        origin = "shared";
+      }
     }
     const prefix = up.slice(0, 2);
     const suffixHint = (SUFFIX_HINTS.find((s) => s.test.test(up)) || {}).hint || "";
@@ -178,6 +254,8 @@
       hint: known ? "" : suffixHint,
       family: fam ? { label: fam.label, spec: fam.spec } : null,
       custom: !!(entry && entry.confidence === "custom"),
+      shared: origin === "shared",
+      origin,
     };
   }
 

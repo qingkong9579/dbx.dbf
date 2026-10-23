@@ -87,10 +87,11 @@
       hint.replaceChildren();
       if (d.cn) {
         hint.appendChild(el("b", { text: d.cn }));
+        const labels = { spec: T("field.fromSpec"), inferred: T("field.inferred"), shared: T("field.shared"), custom: T("field.custom") };
         hint.appendChild(
           el("span", {
             class: "badge" + (d.confidence === "inferred" ? " warn" : ""),
-            text: d.confidence === "spec" ? T("field.fromSpec") : d.confidence === "custom" ? T("field.custom") : T("field.inferred"),
+            text: labels[d.confidence] || T("field.shared"),
           })
         );
       } else {
@@ -789,7 +790,7 @@
       : "";
     const repo = "https://github.com/qingkong9579/dbx.dbf";
     const rows = [
-      [T("dlg.about.version"), "0.3.5"],
+      [T("dlg.about.version"), "0.3.6"],
       [T("dlg.about.author"), T("dlg.about.authorName")],
       [T("dlg.about.source"), repo, true],
       [T("info.version"), "DBF II / III / IV / FoxPro 2.x / 2.5"],

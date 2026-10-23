@@ -477,6 +477,7 @@ svg.ico.big { width: 34px; height: 34px; stroke-width: 1.3; }
 .field-cn.missing { color: var(--fg-faint); font-style: italic; }
 .field-cn .inferred { color: var(--warn); font-style: normal; font-size: 9.5px; margin-left: 3px; }
 .field-cn .custom { color: var(--brand); font-style: normal; font-size: 9.5px; margin-left: 3px; }
+.field-cn .shared { color: var(--fg-faint); font-style: normal; font-size: 9.5px; margin-left: 3px; }
 .field-meta {
   font: 10.5px/1.2 var(--font-mono);
   color: var(--fg-faint);

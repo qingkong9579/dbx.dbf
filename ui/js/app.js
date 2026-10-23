@@ -735,6 +735,7 @@
       const cn = el("span", { class: "field-cn" + (d.cn ? "" : " missing"), text: cnText });
       if (d.cn && d.confidence === "custom") cn.appendChild(el("span", { class: "custom", text: T("field.custom") }));
       if (d.cn && d.confidence === "inferred") cn.appendChild(el("span", { class: "inferred", text: T("field.inferred") }));
+      if (d.cn && d.confidence === "shared") cn.appendChild(el("span", { class: "shared", text: T("field.shared") }));
       cn.title = d.hint || d.source || "";
       body.appendChild(cn);
       li.appendChild(body);

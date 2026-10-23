@@ -71,7 +71,8 @@ REA CLI（`rea-agents@6.5.0`）的 `analyze` / `decompile` / `function` 子命�
 
 - `S68.DBF`：`0x03`、表头 609 B、记录 205 B、1 条记录、18 个 `C` 字段（`SBBH16, GXDM16, YWLX3, SBLX3, ZQZH20, XWH6, ZQDM8, ZQLB2, LTLX1, QYLB2, GPNF4, QYCS1, SBSL20, JG18, JE19, FZDM20, QSBH5, BZ40`）。
 - `req.dbf`：`0x03`、表头 481 B、记录 154 B、1 条记录、14 个 `C` 字段（`sbbh10, fwym16, fwm16, fwlx2, wjbz1, zwjm24, cwjm24, sbrq8, sbsj6, zddclsj5, clbz1, jylsh16, by20, jym4`）；内容是把 `S68.DBF` 作为报文净荷的传输请求。
-- 深市规范中的字段表按 `字段名 / 中文名 / 类型 / 长度 / 说明` 抽取，得到 364 条，作为 `dict.js` 的 `SZ_FIELDS`（置信度 `spec`）。
+- 深市规范中的字段表按 `字段名 / 中文名 / 类型 / 长度 / 说明` 抽取，得到 364 条，写入 `columns-cn.js` 的 `sz`（置信度 `spec`）。
+- 释义匹配分三级：① 文件族命中（按文件名前缀，含上市公司版「前缀+证券代码」）→ `spec`/`inferred`；② 未命中则回退到**全量并集**（sz ∪ s68 ∪ req ∪ gsss.union）→ `shared`（界面徽标「通用」），任何 DBF 只要列名一致都能显示中文名；③ 仍未命中才给前缀/后缀格式提示。列名比较一律 `trim + toUpperCase`，数据表内的键也做大小写不敏感索引，因此 `sbbh`/`SBBH`/`Sbbh` 等价。
 - 《登记结算数据接口规范（上市公司版 V3.19）》（沪-JS-KFB-JKGF-03-2026/A，2026-07-13 发布，FOXPRO 2.5 格式）共 20 类文件：`T1`–`T9`、`S6`–`S9`、`S11`、`S12`、`S13`、`AGCC`、`BGCC`、`ZYDJ`、`H1`，抽取到 355 行、并集 146 个字段（`dict.js` 的 `GSSS_FILES`）。
   - 文件名规则为 `文件前缀 + 证券代码(6 位) + [股份性质] + [日期] + [其它].mdd/.dbf`（如 `t1600001all.dbf`、`agcc60000120150604all.dbf`、`zydj60000020201215.dbf`），因此按**前缀分表**：同一字段在不同文件中含义不同（`CYSL` 在 `T1` 为「持有数量」、在 `S13` 为「减持数量」），识别函数 `gsssOf()` 要求前缀后紧跟 5 位以上数字，避免 `S68` 被 `S6` 误命中。
   - 抽取时表格单元格顺序不稳定（合列/换行），中文名统一用「取最长的合法中文片段」规则，字段名列优先取紧邻中文名的 ASCII 字段名，并对 `GDDM`/`SCDM`/`XH`/`TZRMC` 四个人工核对项做覆盖。

@@ -2,7 +2,7 @@
 
 面向证券登记结算交换文件的 DBF 工作台：打开、阅读、编辑、校验、导出 DBF 数据表，内置深市 D-COM、沪市 PROP 与沪市上市公司版字段释义。
 
-- 插件 ID：`com.dbx.dbf` · 版本 `0.3.5` · 前端工作台 + Go 原生 sidecar（CI 构建 windows-x64 / linux-x64 / linux-arm64 / darwin-x64 / darwin-arm64）
+- 插件 ID：`com.dbx.dbf` · 版本 `0.3.6` · 前端工作台 + Go 原生 sidecar（CI 构建 windows-x64 / linux-x64 / linux-arm64 / darwin-x64 / darwin-arm64）
 - 作者：微茫之心 · 仓库：[`qingkong9579/dbx.dbf`](https://github.com/qingkong9579/dbx.dbf) · 问题与建议请走仓库 Issues
 - 宿主要求：DBX `>= 0.5.68`，Host API `1`，sidecar 协议 `stdio-jsonl` / protocol 1
 - 参考实现：EasyDBF（Java，GBK/D-COM/PROP 支持）与 DBF Viewer Plus（Delphi，`DBFPlus.exe`，REA 静态分析，见 [`docs/analysis.md`](docs/analysis.md)）
@@ -72,7 +72,8 @@ CSV、JSON、SQL（标准 / MySQL）、HTML、Markdown、Excel 2003 XML、DBF、
 字段释义分成**数据**与**规则**两层：
 
 - `ui/js/columns-cn.js` —— 纯数据，`DBF_COLUMNS` 里只有「列名 → 中文名」的对应关系，以及少量代码字段的值域表（如交易市场）。重新生成或整体替换它不会影响任何逻辑。
-- `ui/js/dict.js` —— 规则，负责文件族判定（按文件名前缀）、来源优先级（自定义 > 文件分表 > 规范并集 > 同族字段 > 深市通用）、置信度与前后缀提示。
+- `ui/js/dict.js` —— 规则，负责文件族判定（按文件名前缀）、来源优先级（自定义 > 文件分表 > 同族规范并集 > 通用释义）、置信度与前后缀提示。
+- 匹配规则：**列名不区分大小写**（`sbbh` 与 `SBBH` 等价），且**任何 DBF 文件都能命中**——文件族不匹配时回退到全量并集（深市 364 + 上市公司版 146 + 沪市 PROP 32），命中即标注「通用」；只有完全未收录的列名才给前缀/后缀提示。
 
 `columns-cn.js` 收录：
 
@@ -83,9 +84,9 @@ CSV、JSON、SQL（标准 / MySQL）、HTML、Markdown、Excel 2003 XML、DBF、
 | 沪市 PROP 交换文件（S68/req 样例推断） | 32 | 推断（inferred） |
 | 用户导入的自定义释义（运行期，存于宿主存储） | 不限 | 自定义（custom） |
 
-上市公司版按 **文件前缀** 识别表族：`前缀 + 证券代码(6 位)`，如 `t1600001all.dbf`（全体持有人名册）、`zydj60000020201215.dbf`（质押冻结）、`agcc60000120150604all.dbf`（送股登记持仓）。同一字段在不同文件中含义可能不同（例如 `CYSL` 在 `T1` 是「持有数量」、在 `S13` 是「减持数量」），因此每个前缀都有独立字段表；文件自身表中没有的字段回退到该规范并集，仍无则按前缀/后缀给出提示（如 `DM` → 代码、`JE` → 金额），并在界面标注「推断」。
+上市公司版按 **文件前缀** 识别表族：`前缀 + 证券代码(6 位)`，如 `t1600001all.dbf`（全体持有人名册）、`zydj60000020201215.dbf`（质押冻结）、`agcc60000120150604all.dbf`（送股登记持仓）。同一字段在不同文件中含义可能不同（例如 `CYSL` 在 `T1` 是「持有数量」、在 `S13` 是「减持数量」），因此每个前缀都有独立字段表；文件自身表中没有的字段依次回退到该规范并集、再回退到全量通用并集（任意文件的同名列），仍无则按前缀/后缀给出提示（如 `DM` → 代码、`JE` → 金额），并在界面标注「推断」。
 
-`describeField(fileName, fieldName)` 返回 `{cn, confidence, source, prefix, hint, family, custom}`，信息面板同时显示表族与规范出处。想给自己的一批表补中文名：桌面端在「更多 → 字段释义」里导出当前表字段释义 JSON（`字段名: 中文名`），编辑后导入即可；同名条目会覆盖内置释义并标为「自定义」，只影响显示，不改动 DBF 本身。
+`describeField(fileName, fieldName)` 返回 `{cn, confidence, source, prefix, hint, family, custom, shared, origin}`，信息面板同时显示表族与规范出处；`confidence` 取 `spec`（规范）/ `inferred`（推断）/ `shared`（通用）/ `custom`（自定义）。想给自己的一批表补中文名：桌面端在「更多 → 字段释义」里导出当前表字段释义 JSON（`字段名: 中文名`），编辑后导入即可；同名条目会覆盖内置释义并标为「自定义」，只影响显示，不改动 DBF 本身。
 
 ## 权限
 
@@ -105,7 +106,7 @@ CSV、JSON、SQL（标准 / MySQL）、HTML、Markdown、Excel 2003 XML、DBF、
 
 ```bash
 cd backend && go build -o bin/dbx-dbf-backend.exe .   # 编译 sidecar（linux/macos 换 GOOS）
-cd .. && dbx-plugin package .                          # 产出 dist/com.dbx.dbf-0.3.5-<target>.dbxp
+cd .. && dbx-plugin package .                          # 产出 dist/com.dbx.dbf-0.3.6-<target>.dbxp
 dbx-plugin dev --path . --port 5190                    # 独立调试宿主（会启动 sidecar）
 uv run --no-project --python 3.12 python tools/gen-samples.py   # 重新生成构造示例表
 ```
@@ -149,10 +150,11 @@ docs/analysis.md       REA 静态分析记录与设计取舍
 
 ## 发布
 
-`dbx-plugin package .` 产出未签名 `dist/com.dbx.dbf-0.3.5-windows-x64.dbxp` 与 `.artifact.json`（`backend/bin` 会被改写成包内 `bin/windows-x64/dbx-dbf-backend.exe`）；本地安装需在插件中心开启「允许安装未签名开发包」。正式上架流程（`.dbx-store.json`、GitHub Release 候选包、DBX Store 审核与签名、上架要素清单）见 [`docs/store.md`](docs/store.md)。
+`dbx-plugin package .` 产出未签名 `dist/com.dbx.dbf-0.3.6-windows-x64.dbxp` 与 `.artifact.json`（`backend/bin` 会被改写成包内 `bin/windows-x64/dbx-dbf-backend.exe`）；本地安装需在插件中心开启「允许安装未签名开发包」。正式上架流程（`.dbx-store.json`、GitHub Release 候选包、DBX Store 审核与签名、上架要素清单）见 [`docs/store.md`](docs/store.md)。
 
 ## 变更
 
+- `0.3.6`：字段释义改为「任意文件 + 列名大小写不敏感」匹配，文件族不匹配时回退到全量并集并标注「通用」；侧栏、字段对话框与信息面板同步显示该标记。
 - `0.3.5`：把「DBF 列名 ↔ 中文名」的对应关系从代码中解耦为独立数据文件 `ui/js/columns-cn.js`，`dict.js` 只保留族判定、来源优先级与置信度等规则；新增「更多 → 字段释义」菜单：导出当前表字段释义 JSON、导入自定义释义（运行期合并、持久化、优先级最高）、清空自定义释义，侧栏与字段对话框会标注「自定义」。
 - `0.3.4`：校验规则增加「整数位超出上限」与「含换行或控制字符」，问题列表随界面语言切换；详情面板为交易市场代码等少量代码字段给出中文含义；文件信息面板识别「前缀_YYYYMMDD」命名并显示数据日期；新建表可选表版本（dBase III+/IV/V）并记住上次选择。
 - `0.3.3`：新增手动更换编码重新打开——编码按钮菜单提供「自动识别 + 8 种编码」，编码设置对话框带前三行实时预览与「记住此文件的编码」；修复自动识别在 LDID 为 0 时把编码对象当作字符串、导致回退 UTF-8 而乱码的问题（优先级改为 严格 UTF-8 探测 > LDID > 交换文件族 > 文件名），保存时按当前编码写入对应 LDID。
